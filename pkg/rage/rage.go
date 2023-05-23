@@ -46,7 +46,7 @@ func (r *Rage) LoadConfig() {
 }
 
 func (r *Rage) Run() {
-	result := make(map[int]Result)
+	result := make(chan Result, r.BotCount)
 	client := http.Client{}
 	for i := 1; i <= r.BotCount; i++ {
 		r.Wg.Add(1)
@@ -54,26 +54,27 @@ func (r *Rage) Run() {
 			defer r.Wg.Done()
 			req, err := http.NewRequest(r.Method, r.URL, nil)
 			if err != nil {
-				result[i] = Result{
-					Error: err,
-				}
 				return
 			}
 			resp, err := client.Do(req)
 			if err != nil {
-				result[i] = Result{
+				result <- Result{
 					Error: err,
 				}
 				return
 			}
-			result[i] = Result{
+			result <- Result{
 				StatusCode:  resp.StatusCode,
 				ContentType: resp.Header.Get("Content-Type"),
 			}
 		}(i)
 	}
+
 	r.exit()
-	fmt.Println(result)
+	close(result)
+	for val := range result {
+		fmt.Println(val)
+	}
 }
 
 func (r *Rage) exit() {
