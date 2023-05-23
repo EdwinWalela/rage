@@ -94,28 +94,31 @@ func (r *Rage) Run() {
 }
 
 func (r *Rage) summary() {
-	// Print summary of responses
-	// Success & Failure rate
 	fmt.Printf("\n\nTest complete. Result summary:\n\n")
 	successCount := 0
 	failCount := 0
+	totalResponseTime := int64(0)
 	var maxResponseTime time.Duration
+
 	for val := range r.result {
 		if val.StatusCode == http.StatusOK {
 			successCount++
 		} else {
 			failCount++
 		}
+		totalResponseTime += val.RequestTime.Microseconds()
 		responseTime := val.RequestTime
 		if responseTime > maxResponseTime {
 			maxResponseTime = responseTime
 		}
 	}
+
+	avgResponseTime := float64(totalResponseTime / int64(r.BotCount))
 	successRate := float32(successCount/r.BotCount) * 100
 	failRate := float32(failCount/r.BotCount) * 100
 
 	fmt.Printf("Success Rate    = %.1f%%\n", successRate)
 	fmt.Printf("Failure Rate    = %.1f%%\n", failRate)
+	fmt.Printf("Average Latency = %.3fµs\n", avgResponseTime)
 	fmt.Printf("Maximum Latency = %s\n\n", maxResponseTime)
-
 }
