@@ -7,6 +7,8 @@ import (
 	"os"
 	"strings"
 	"sync"
+
+	"github.com/schollz/progressbar/v3"
 )
 
 type Rage struct {
@@ -48,10 +50,12 @@ func (r *Rage) LoadConfig() {
 func (r *Rage) Run() {
 	result := make(chan Result, r.BotCount)
 	client := http.Client{}
+	bar := progressbar.Default(int64(r.BotCount))
 	for i := 1; i <= r.BotCount; i++ {
 		r.Wg.Add(1)
-		go func(i int) {
+		go func() {
 			defer r.Wg.Done()
+			defer bar.Add(1)
 			req, err := http.NewRequest(r.Method, r.URL, nil)
 			if err != nil {
 				return
@@ -67,14 +71,14 @@ func (r *Rage) Run() {
 				StatusCode:  resp.StatusCode,
 				ContentType: resp.Header.Get("Content-Type"),
 			}
-		}(i)
+		}()
 	}
 
 	r.exit()
 	close(result)
-	for val := range result {
-		fmt.Println(val)
-	}
+	// for val := range result {
+	// 	fmt.Println(val)
+	// }
 }
 
 func (r *Rage) exit() {
