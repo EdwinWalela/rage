@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/schollz/progressbar/v3"
 )
@@ -26,9 +27,11 @@ type Result struct {
 	StatusCode  int
 	ContentType string
 	Error       error
+	RequestTime time.Duration
 }
 
 func (r *Rage) LoadConfig() {
+	fmt.Printf("\nInitializing rage...\n\n")
 	urlPtr := flag.String("url", "", "Target URL")
 	methodPtr := flag.String("method", "", "HTTP request method")
 	botCountPtr := flag.Int("bots", 1, "Number of bots to spawn")
@@ -48,6 +51,10 @@ func (r *Rage) LoadConfig() {
 	r.Method = strings.ToUpper(*methodPtr)
 	r.BotCount = *botCountPtr
 	r.Attempts = *attemptsPtr
+
+	fmt.Printf("Bot Count -> %d\n", r.BotCount)
+	fmt.Printf("Endpoint  -> [%s] %s\n\n\n", r.Method, r.URL)
+
 }
 
 func (r *Rage) Run() {
@@ -59,31 +66,56 @@ func (r *Rage) Run() {
 		go func() {
 			defer r.wg.Done()
 			defer r.progressBar.Add(1)
+			startTime := time.Now()
 			req, err := http.NewRequest(r.Method, r.URL, nil)
+			requestTime := time.Since(startTime)
 			if err != nil {
 				return
 			}
 			resp, err := r.client.Do(req)
 			if err != nil {
 				r.result <- Result{
-					Error: err,
+					Error:       err,
+					RequestTime: requestTime,
 				}
 				return
 			}
 			r.result <- Result{
 				StatusCode:  resp.StatusCode,
 				ContentType: resp.Header.Get("Content-Type"),
+				RequestTime: requestTime,
 			}
 		}()
 	}
 
-	r.exit()
+	r.wg.Wait()
 	close(r.result)
-	// for val := range result {
-	// 	fmt.Println(val)
-	// }
+	r.summary()
 }
 
-func (r *Rage) exit() {
-	r.wg.Wait()
+func (r *Rage) summary() {
+	// Print summary of responses
+	// Success & Failure rate
+	fmt.Printf("\n\nTest complete. Result summary:\n\n")
+	successCount := 0
+	failCount := 0
+	var maxResponseTime time.Duration
+	for val := range r.result {
+		if val.StatusCode == http.StatusOK {
+			successCount++
+		} else {
+			failCount++
+		}
+		responseTime := val.RequestTime
+		if responseTime > maxResponseTime {
+			maxResponseTime = responseTime
+		}
+	}
+	successRate := float32(successCount/r.BotCount) * 100
+	failRate := float32(failCount/r.BotCount) * 100
+
+	fmt.Printf("Success Rate    = %.1f%%\n", successRate)
+	fmt.Printf("Failure Rate    = %.1f%%\n", failRate)
+	fmt.Printf("Maximum Latency = %s\n\n", maxResponseTime)
+
 }
