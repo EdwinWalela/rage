@@ -12,11 +12,14 @@ import (
 )
 
 type Rage struct {
-	URL      string
-	Method   string
-	BotCount int
-	Attempts int
-	Wg       sync.WaitGroup
+	URL         string
+	Method      string
+	BotCount    int
+	Attempts    int
+	wg          sync.WaitGroup
+	progressBar *progressbar.ProgressBar
+	client      http.Client
+	result      chan Result
 }
 
 type Result struct {
@@ -48,26 +51,26 @@ func (r *Rage) LoadConfig() {
 }
 
 func (r *Rage) Run() {
-	result := make(chan Result, r.BotCount)
-	client := http.Client{}
-	bar := progressbar.Default(int64(r.BotCount))
+	r.result = make(chan Result, r.BotCount)
+	r.progressBar = progressbar.Default(int64(r.BotCount))
+
 	for i := 1; i <= r.BotCount; i++ {
-		r.Wg.Add(1)
+		r.wg.Add(1)
 		go func() {
-			defer r.Wg.Done()
-			defer bar.Add(1)
+			defer r.wg.Done()
+			defer r.progressBar.Add(1)
 			req, err := http.NewRequest(r.Method, r.URL, nil)
 			if err != nil {
 				return
 			}
-			resp, err := client.Do(req)
+			resp, err := r.client.Do(req)
 			if err != nil {
-				result <- Result{
+				r.result <- Result{
 					Error: err,
 				}
 				return
 			}
-			result <- Result{
+			r.result <- Result{
 				StatusCode:  resp.StatusCode,
 				ContentType: resp.Header.Get("Content-Type"),
 			}
@@ -75,12 +78,12 @@ func (r *Rage) Run() {
 	}
 
 	r.exit()
-	close(result)
+	close(r.result)
 	// for val := range result {
 	// 	fmt.Println(val)
 	// }
 }
 
 func (r *Rage) exit() {
-	r.Wg.Wait()
+	r.wg.Wait()
 }
