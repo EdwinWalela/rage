@@ -54,7 +54,6 @@ func (r *Rage) LoadConfig() {
 
 	fmt.Printf("Bot Count -> %d\n", r.BotCount)
 	fmt.Printf("Endpoint  -> [%s] %s\n\n\n", r.Method, r.URL)
-
 }
 
 func (r *Rage) Run() {
@@ -66,13 +65,13 @@ func (r *Rage) Run() {
 		go func() {
 			defer r.wg.Done()
 			defer r.progressBar.Add(1)
-			startTime := time.Now()
 			req, err := http.NewRequest(r.Method, r.URL, nil)
-			requestTime := time.Since(startTime)
 			if err != nil {
 				return
 			}
+			startTime := time.Now()
 			resp, err := r.client.Do(req)
+			requestTime := time.Since(startTime)
 			if err != nil {
 				r.result <- Result{
 					Error:       err,
@@ -106,7 +105,7 @@ func (r *Rage) summary() {
 		} else {
 			failCount++
 		}
-		totalResponseTime += val.RequestTime.Microseconds()
+		totalResponseTime += val.RequestTime.Milliseconds()
 		responseTime := val.RequestTime
 		if responseTime > maxResponseTime {
 			maxResponseTime = responseTime
@@ -119,6 +118,6 @@ func (r *Rage) summary() {
 
 	fmt.Printf("Success Rate    = %.1f%%\n", successRate)
 	fmt.Printf("Failure Rate    = %.1f%%\n", failRate)
-	fmt.Printf("Average Latency = %.3fµs\n", avgResponseTime)
+	fmt.Printf("Average Latency = %.2fms\n", avgResponseTime)
 	fmt.Printf("Maximum Latency = %s\n\n", maxResponseTime)
 }
