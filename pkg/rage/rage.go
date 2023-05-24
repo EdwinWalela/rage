@@ -24,10 +24,11 @@ type Rage struct {
 }
 
 type Result struct {
-	StatusCode  int
-	ContentType string
-	Error       error
-	RequestTime time.Duration
+	StatusCode    int
+	ContentType   string
+	ContentLength int64
+	Error         error
+	RequestTime   time.Duration
 }
 
 func (r *Rage) LoadConfig() {
@@ -72,6 +73,7 @@ func (r *Rage) Run() {
 			startTime := time.Now()
 			resp, err := r.client.Do(req)
 			requestTime := time.Since(startTime)
+
 			if err != nil {
 				r.result <- Result{
 					Error:       err,
@@ -80,9 +82,10 @@ func (r *Rage) Run() {
 				return
 			}
 			r.result <- Result{
-				StatusCode:  resp.StatusCode,
-				ContentType: resp.Header.Get("Content-Type"),
-				RequestTime: requestTime,
+				StatusCode:    resp.StatusCode,
+				ContentType:   resp.Header.Get("Content-Type"),
+				ContentLength: resp.ContentLength,
+				RequestTime:   requestTime,
 			}
 		}()
 	}
@@ -97,6 +100,7 @@ func (r *Rage) summary() {
 	successCount := 0
 	failCount := 0
 	totalResponseTime := int64(0)
+	totalDataReceived := int64(0)
 	var maxResponseTime time.Duration
 	minResponseTime := time.Hour * 24
 
@@ -105,6 +109,10 @@ func (r *Rage) summary() {
 			successCount++
 		} else {
 			failCount++
+		}
+
+		if val.ContentLength > 0 {
+			totalDataReceived += val.ContentLength
 		}
 		totalResponseTime += val.RequestTime.Milliseconds()
 		responseTime := val.RequestTime
@@ -121,9 +129,12 @@ func (r *Rage) summary() {
 	successRate := float32(successCount/r.BotCount) * 100
 	failRate := float32(failCount/r.BotCount) * 100
 
-	fmt.Printf("Success Rate.......: %.1f%%\n", successRate)
-	fmt.Printf("Failure Rate.......: %.1f%%\n", failRate)
-	fmt.Printf("Average Latency....: %.2fms\n", avgResponseTime)
-	fmt.Printf("Maximum Latency....: %s\n", maxResponseTime)
-	fmt.Printf("Minimum Latency....: %s\n\n", minResponseTime)
+	fmt.Printf("Success Rate........: %.1f%%\n", successRate)
+	fmt.Printf("Failure Rate........: %.1f%%\n", failRate)
+	if totalDataReceived > 0 {
+		fmt.Printf("Data Received.......: %db\n", totalDataReceived)
+	}
+	fmt.Printf("Average Latency.....: %.2fms\n", avgResponseTime)
+	fmt.Printf("Maximum Latency.....: %s\n", maxResponseTime)
+	fmt.Printf("Minimum Latency.....: %s\n\n", minResponseTime)
 }
