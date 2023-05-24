@@ -52,8 +52,8 @@ func (r *Rage) LoadConfig() {
 	r.BotCount = *botCountPtr
 	r.Attempts = *attemptsPtr
 
-	fmt.Printf("Bot Count -> %d\n", r.BotCount)
-	fmt.Printf("Endpoint  -> [%s] %s\n\n\n", r.Method, r.URL)
+	fmt.Printf("Bot Count.......: %d\n", r.BotCount)
+	fmt.Printf("Endpoint........: [%s] %s\n\n\n", r.Method, r.URL)
 }
 
 func (r *Rage) Run() {
@@ -98,6 +98,7 @@ func (r *Rage) summary() {
 	failCount := 0
 	totalResponseTime := int64(0)
 	var maxResponseTime time.Duration
+	minResponseTime := time.Hour * 24
 
 	for val := range r.result {
 		if val.StatusCode == http.StatusOK {
@@ -107,8 +108,12 @@ func (r *Rage) summary() {
 		}
 		totalResponseTime += val.RequestTime.Milliseconds()
 		responseTime := val.RequestTime
+
 		if responseTime > maxResponseTime {
 			maxResponseTime = responseTime
+		}
+		if responseTime < minResponseTime {
+			minResponseTime = responseTime
 		}
 	}
 
@@ -116,8 +121,9 @@ func (r *Rage) summary() {
 	successRate := float32(successCount/r.BotCount) * 100
 	failRate := float32(failCount/r.BotCount) * 100
 
-	fmt.Printf("Success Rate    = %.1f%%\n", successRate)
-	fmt.Printf("Failure Rate    = %.1f%%\n", failRate)
-	fmt.Printf("Average Latency = %.2fms\n", avgResponseTime)
-	fmt.Printf("Maximum Latency = %s\n\n", maxResponseTime)
+	fmt.Printf("Success Rate.......: %.1f%%\n", successRate)
+	fmt.Printf("Failure Rate.......: %.1f%%\n", failRate)
+	fmt.Printf("Average Latency....: %.2fms\n", avgResponseTime)
+	fmt.Printf("Maximum Latency....: %s\n", maxResponseTime)
+	fmt.Printf("Minimum Latency....: %s\n\n", minResponseTime)
 }
