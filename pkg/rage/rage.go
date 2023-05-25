@@ -54,38 +54,42 @@ func (r *Rage) LoadConfig() {
 	r.Attempts = *attemptsPtr
 
 	fmt.Printf("Bot Count.......: %d\n", r.BotCount)
+	fmt.Printf("Attempts........: %d\n", r.Attempts)
 	fmt.Printf("Endpoint........: [%s] %s\n\n\n", r.Method, r.URL)
 }
 
 func (r *Rage) Run() {
-	r.result = make(chan Result, r.BotCount)
-	r.progressBar = progressbar.Default(int64(r.BotCount))
-
-	for i := 1; i <= r.BotCount; i++ {
-		r.wg.Add(1)
+	r.result = make(chan Result, 100000)
+	r.progressBar = progressbar.Default(int64(r.BotCount * (r.Attempts)))
+	for i := 0; i < r.BotCount; i++ {
+		r.wg.Add(r.Attempts)
 		go func() {
-			defer r.wg.Done()
-			defer r.progressBar.Add(1)
-			req, err := http.NewRequest(r.Method, r.URL, nil)
-			if err != nil {
-				return
-			}
-			startTime := time.Now()
-			resp, err := r.client.Do(req)
-			requestTime := time.Since(startTime)
-
-			if err != nil {
-				r.result <- Result{
-					Error:       err,
-					RequestTime: requestTime,
+			for k := 0; k < r.Attempts; k++ {
+				r.progressBar.Add(1)
+				defer r.wg.Done()
+				req, err := http.NewRequest(r.Method, r.URL, nil)
+				if err != nil {
+					continue
 				}
-				return
-			}
-			r.result <- Result{
-				StatusCode:    resp.StatusCode,
-				ContentType:   resp.Header.Get("Content-Type"),
-				ContentLength: resp.ContentLength,
-				RequestTime:   requestTime,
+
+				startTime := time.Now()
+				resp, err := r.client.Do(req)
+				requestTime := time.Since(startTime)
+				_ = resp
+				_ = requestTime
+				if err != nil {
+					r.result <- Result{
+						Error:       err,
+						RequestTime: requestTime,
+					}
+					continue
+				}
+				r.result <- Result{
+					StatusCode:    resp.StatusCode,
+					ContentType:   resp.Header.Get("Content-Type"),
+					ContentLength: resp.ContentLength,
+					RequestTime:   requestTime,
+				}
 			}
 		}()
 	}
@@ -126,11 +130,10 @@ func (r *Rage) summary() {
 	}
 
 	avgResponseTime := float64(totalResponseTime / int64(r.BotCount))
-	successRate := float32(successCount/r.BotCount) * 100
+	successRate := float32(successCount/(r.BotCount*r.Attempts)) * 100
 	failRate := float32(failCount/r.BotCount) * 100
-
-	fmt.Printf("Success Rate........: %.1f%%\n", successRate)
-	fmt.Printf("Failure Rate........: %.1f%%\n", failRate)
+	fmt.Printf("Success Rate........: %.1f%% (%d/%d)\n", successRate, successCount, r.BotCount*r.Attempts)
+	fmt.Printf("Failure Rate........: %.1f%% (%d/%d)\n", failRate, failCount, r.BotCount*r.Attempts)
 	if totalDataReceived > 0 {
 		fmt.Printf("Data Received.......: %db\n", totalDataReceived)
 	}
