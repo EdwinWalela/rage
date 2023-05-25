@@ -21,6 +21,7 @@ type Rage struct {
 	progressBar *progressbar.ProgressBar
 	client      http.Client
 	result      chan Result
+	startTime   time.Duration
 }
 
 type Result struct {
@@ -58,6 +59,30 @@ func (r *Rage) LoadConfig() {
 	fmt.Printf("Endpoint........: [%s] %s\n\n\n", r.Method, r.URL)
 }
 
+func (r *Rage) makeRequest() {
+	req, err := http.NewRequest(r.Method, r.URL, nil)
+	if err != nil {
+		return
+	}
+	startTime := time.Now()
+	resp, err := r.client.Do(req)
+	requestTime := time.Since(startTime)
+	if err != nil {
+		r.result <- Result{
+			Error:       err,
+			RequestTime: requestTime,
+		}
+		return
+	}
+	r.result <- Result{
+		StatusCode:    resp.StatusCode,
+		ContentType:   resp.Header.Get("Content-Type"),
+		ContentLength: resp.ContentLength,
+		RequestTime:   requestTime,
+	}
+	r.progressBar.Add(1)
+}
+
 func (r *Rage) Run() {
 	r.result = make(chan Result, 100000)
 	r.progressBar = progressbar.Default(int64(r.BotCount * (r.Attempts)))
@@ -65,31 +90,8 @@ func (r *Rage) Run() {
 		r.wg.Add(r.Attempts)
 		go func() {
 			for k := 0; k < r.Attempts; k++ {
-				r.progressBar.Add(1)
 				defer r.wg.Done()
-				req, err := http.NewRequest(r.Method, r.URL, nil)
-				if err != nil {
-					continue
-				}
-
-				startTime := time.Now()
-				resp, err := r.client.Do(req)
-				requestTime := time.Since(startTime)
-				_ = resp
-				_ = requestTime
-				if err != nil {
-					r.result <- Result{
-						Error:       err,
-						RequestTime: requestTime,
-					}
-					continue
-				}
-				r.result <- Result{
-					StatusCode:    resp.StatusCode,
-					ContentType:   resp.Header.Get("Content-Type"),
-					ContentLength: resp.ContentLength,
-					RequestTime:   requestTime,
-				}
+				r.makeRequest()
 			}
 		}()
 	}
