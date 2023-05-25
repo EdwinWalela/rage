@@ -21,7 +21,7 @@ type Rage struct {
 	progressBar *progressbar.ProgressBar
 	client      http.Client
 	result      chan Result
-	startTime   time.Duration
+	startTime   time.Time
 }
 
 type Result struct {
@@ -84,8 +84,9 @@ func (r *Rage) makeRequest() {
 }
 
 func (r *Rage) Run() {
-	r.result = make(chan Result, 100000)
-	r.progressBar = progressbar.Default(int64(r.BotCount * (r.Attempts)))
+	r.startTime = time.Now()
+	r.result = make(chan Result, r.BotCount*r.Attempts)
+	r.progressBar = progressbar.Default(int64(r.BotCount * r.Attempts))
 	for i := 0; i < r.BotCount; i++ {
 		r.wg.Add(r.Attempts)
 		go func() {
@@ -95,14 +96,25 @@ func (r *Rage) Run() {
 			}
 		}()
 	}
-
 	r.wg.Wait()
 	close(r.result)
 	r.summary()
 }
 
+func (r *Rage) getExecutionDuration() time.Duration {
+	executionDuration := time.Since(r.startTime)
+
+	if executionDuration > time.Microsecond {
+		return executionDuration.Truncate(time.Millisecond)
+	} else if executionDuration > time.Millisecond {
+		return executionDuration.Truncate(time.Second)
+	} else {
+		return executionDuration.Truncate(time.Minute)
+	}
+}
+
 func (r *Rage) summary() {
-	fmt.Printf("\n\nTest complete. Result summary:\n\n")
+	fmt.Printf("\n\nTest complete in %s. Result summary:\n\n", r.getExecutionDuration())
 	successCount := 0
 	failCount := 0
 	totalResponseTime := int64(0)
