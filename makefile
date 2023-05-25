@@ -1,7 +1,7 @@
 all: clean test build
 
 build:
-	go build -o rage cmd/main.go
+	go build -o rage main.go
 
 test:
 	go test -v ./pkg/...
