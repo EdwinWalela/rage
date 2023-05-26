@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/edwinwalela/rage/pkg/config"
 	"github.com/enescakir/emoji"
 	"github.com/fatih/color"
 	"github.com/schollz/progressbar/v3"
@@ -17,13 +18,14 @@ import (
 type Rage struct {
 	URL         string
 	Method      string
-	BotCount    int
+	userCount   int
 	Attempts    int
 	wg          sync.WaitGroup
 	progressBar *progressbar.ProgressBar
 	client      http.Client
 	result      chan Result
 	startTime   time.Time
+	config      config.Config
 }
 
 type Result struct {
@@ -38,25 +40,38 @@ func (r *Rage) LoadConfig() {
 	color.Cyan("\n%v Initializing rage...\n\n", emoji.Fire)
 	urlPtr := flag.String("url", "", "Target URL")
 	methodPtr := flag.String("method", "", "HTTP request method")
-	botCountPtr := flag.Int("bots", 1, "Number of bots to spawn")
+	userCountPtr := flag.Int("users", 1, "Number of users to spawn")
 	attemptsPtr := flag.Int("attempts", 1, "Number of requests to make per user")
+	filePtr := flag.String("f", "", "Configuration file path")
+
 	flag.Parse()
 
-	if *urlPtr == "" {
-		fmt.Printf("missing required -url flag\n")
-		os.Exit(2)
-	}
-	if *methodPtr == "" {
-		fmt.Printf("missing required -method flag\n")
-		os.Exit(2)
-	}
+	if *filePtr != "" {
+		cfg, err := config.Parse(*filePtr)
+		if err != nil {
+			fmt.Printf("failed to parse config file (%s): %v", *filePtr, err)
+			os.Exit(2)
+		}
+		r.URL = cfg.Target.Url
+		r.Method = cfg.Target.Method
+		r.userCount = cfg.Load.Users
+		r.Attempts = cfg.Load.Attempts
+	} else {
+		if *urlPtr == "" {
+			fmt.Printf("missing required -url flag\n")
+			os.Exit(2)
+		}
+		if *methodPtr == "" {
+			fmt.Printf("missing required -method flag\n")
+			os.Exit(2)
+		}
 
-	r.URL = *urlPtr
-	r.Method = strings.ToUpper(*methodPtr)
-	r.BotCount = *botCountPtr
-	r.Attempts = *attemptsPtr
-
-	fmt.Printf("Bot Count.......: %d\n", r.BotCount)
+		r.URL = *urlPtr
+		r.Method = strings.ToUpper(*methodPtr)
+		r.userCount = *userCountPtr
+		r.Attempts = *attemptsPtr
+	}
+	fmt.Printf("Bot Count.......: %d\n", r.userCount)
 	fmt.Printf("Attempts........: %d\n", r.Attempts)
 	fmt.Printf("Endpoint........: [%s] %s\n\n\n", r.Method, r.URL)
 }
@@ -87,13 +102,13 @@ func (r *Rage) makeRequest() {
 
 func (r *Rage) Run() {
 	r.startTime = time.Now()
-	r.result = make(chan Result, r.BotCount*r.Attempts)
+	r.result = make(chan Result, r.userCount*r.Attempts)
 	// r.progressBar = progressbar.Default(int64(r.BotCount * r.Attempts))
 	r.progressBar = progressbar.NewOptions(
-		r.BotCount*r.Attempts,
+		r.userCount*r.Attempts,
 		progressbar.OptionSetWidth(30),
 	)
-	for i := 0; i < r.BotCount; i++ {
+	for i := 0; i < r.userCount; i++ {
 		r.wg.Add(r.Attempts)
 		go func() {
 			for k := 0; k < r.Attempts; k++ {
@@ -149,11 +164,11 @@ func (r *Rage) summary() {
 		}
 	}
 
-	avgResponseTime := float64(totalResponseTime / int64(r.BotCount))
-	successRate := float32(successCount/(r.BotCount*r.Attempts)) * 100
-	failRate := float32(failCount/r.BotCount) * 100
-	fmt.Printf("Success Rate........: %.1f%% (%d/%d)\n", successRate, successCount, r.BotCount*r.Attempts)
-	fmt.Printf("Failure Rate........: %.1f%% (%d/%d)\n", failRate, failCount, r.BotCount*r.Attempts)
+	avgResponseTime := float64(totalResponseTime / int64(r.userCount))
+	successRate := float32(successCount/(r.userCount*r.Attempts)) * 100
+	failRate := float32(failCount/r.userCount) * 100
+	fmt.Printf("Success Rate........: %.1f%% (%d/%d)\n", successRate, successCount, r.userCount*r.Attempts)
+	fmt.Printf("Failure Rate........: %.1f%% (%d/%d)\n", failRate, failCount, r.userCount*r.Attempts)
 	if totalDataReceived > 0 {
 		fmt.Printf("Data Received.......: %db\n", totalDataReceived)
 	}
