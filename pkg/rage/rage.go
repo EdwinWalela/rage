@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/enescakir/emoji"
+	"github.com/fatih/color"
 	"github.com/schollz/progressbar/v3"
 )
 
@@ -34,7 +35,7 @@ type Result struct {
 }
 
 func (r *Rage) LoadConfig() {
-	fmt.Printf("\n%v Initializing rage...\n\n", emoji.Fire)
+	color.Cyan("\n%v Initializing rage...\n\n", emoji.Fire)
 	urlPtr := flag.String("url", "", "Target URL")
 	methodPtr := flag.String("method", "", "HTTP request method")
 	botCountPtr := flag.Int("bots", 1, "Number of bots to spawn")
@@ -87,7 +88,11 @@ func (r *Rage) makeRequest() {
 func (r *Rage) Run() {
 	r.startTime = time.Now()
 	r.result = make(chan Result, r.BotCount*r.Attempts)
-	r.progressBar = progressbar.Default(int64(r.BotCount * r.Attempts))
+	// r.progressBar = progressbar.Default(int64(r.BotCount * r.Attempts))
+	r.progressBar = progressbar.NewOptions(
+		r.BotCount*r.Attempts,
+		progressbar.OptionSetWidth(30),
+	)
 	for i := 0; i < r.BotCount; i++ {
 		r.wg.Add(r.Attempts)
 		go func() {
