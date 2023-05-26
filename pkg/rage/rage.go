@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/enescakir/emoji"
 	"github.com/schollz/progressbar/v3"
 )
 
@@ -33,7 +34,7 @@ type Result struct {
 }
 
 func (r *Rage) LoadConfig() {
-	fmt.Printf("\nInitializing rage...\n\n")
+	fmt.Printf("\n%v Initializing rage...\n\n", emoji.Fire)
 	urlPtr := flag.String("url", "", "Target URL")
 	methodPtr := flag.String("method", "", "HTTP request method")
 	botCountPtr := flag.Int("bots", 1, "Number of bots to spawn")
@@ -114,7 +115,7 @@ func (r *Rage) getExecutionDuration() time.Duration {
 }
 
 func (r *Rage) summary() {
-	fmt.Printf("\n\nTest complete in %s. Result summary:\n\n", r.getExecutionDuration())
+	fmt.Printf("\n\n%v Test complete in %s. Result summary:\n\n", emoji.CheckMarkButton, r.getExecutionDuration())
 	successCount := 0
 	failCount := 0
 	totalResponseTime := int64(0)
