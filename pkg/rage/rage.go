@@ -44,18 +44,6 @@ type Result struct {
 	RequestTime   time.Duration
 }
 
-func (r *Rage) loadConfigFile(cfg config.Config) {
-	r.URL = cfg.Target.Url
-	r.Method = cfg.Target.Method
-	r.userCount = cfg.Load.Users
-	r.Attempts = cfg.Load.Attempts
-	r.request = request{
-		headers:     cfg.Headers,
-		contentType: cfg.Body["content-type"].(string),
-		payload:     cfg.Body["payload"].(map[string]interface{}),
-	}
-}
-
 func (r *Rage) LoadConfig() {
 	color.Cyan("\n%v Initializing rage...\n\n", emoji.Fire)
 	urlPtr := flag.String("url", "", "Target URL")
@@ -93,6 +81,39 @@ func (r *Rage) LoadConfig() {
 	fmt.Printf("Endpoint........: [%s] %s\n\n\n", r.Method, r.URL)
 }
 
+func (r *Rage) Run() {
+	r.startTime = time.Now()
+	r.result = make(chan Result, r.userCount*r.Attempts)
+	r.progressBar = progressbar.NewOptions(
+		r.userCount*r.Attempts,
+		progressbar.OptionSetWidth(30),
+	)
+	for i := 0; i < r.userCount; i++ {
+		r.wg.Add(r.Attempts)
+		go func() {
+			for k := 0; k < r.Attempts; k++ {
+				defer r.wg.Done()
+				r.makeRequest()
+			}
+		}()
+	}
+	r.wg.Wait()
+	close(r.result)
+	r.summary()
+}
+
+func (r *Rage) loadConfigFile(cfg config.Config) {
+	r.URL = cfg.Target.Url
+	r.Method = cfg.Target.Method
+	r.userCount = cfg.Load.Users
+	r.Attempts = cfg.Load.Attempts
+	r.request = request{
+		headers:     cfg.Headers,
+		contentType: cfg.Body["content-type"].(string),
+		payload:     cfg.Body["payload"].(map[string]interface{}),
+	}
+}
+
 func (r *Rage) makeRequest() {
 	if r.request.contentType != "application/json" {
 		fmt.Printf("unsupported request content-type (%s)", r.request.contentType)
@@ -127,28 +148,6 @@ func (r *Rage) makeRequest() {
 		RequestTime:   requestTime,
 	}
 	r.progressBar.Add(1)
-}
-
-func (r *Rage) Run() {
-	r.startTime = time.Now()
-	r.result = make(chan Result, r.userCount*r.Attempts)
-	// r.progressBar = progressbar.Default(int64(r.BotCount * r.Attempts))
-	r.progressBar = progressbar.NewOptions(
-		r.userCount*r.Attempts,
-		progressbar.OptionSetWidth(30),
-	)
-	for i := 0; i < r.userCount; i++ {
-		r.wg.Add(r.Attempts)
-		go func() {
-			for k := 0; k < r.Attempts; k++ {
-				defer r.wg.Done()
-				r.makeRequest()
-			}
-		}()
-	}
-	r.wg.Wait()
-	close(r.result)
-	r.summary()
 }
 
 func (r *Rage) getExecutionDuration() time.Duration {
