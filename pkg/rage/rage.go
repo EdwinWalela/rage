@@ -13,7 +13,6 @@ import (
 
 	"github.com/edwinwalela/rage/pkg/config"
 	"github.com/enescakir/emoji"
-	"github.com/fatih/color"
 	"github.com/schollz/progressbar/v3"
 )
 
@@ -45,7 +44,7 @@ type Result struct {
 }
 
 func (r *Rage) LoadConfig() {
-	color.Cyan("\n%v Initializing rage...\n\n", emoji.Fire)
+	fmt.Printf("\n%v Initializing rage\n\n", emoji.Fire)
 	urlPtr := flag.String("url", "", "Target URL")
 	methodPtr := flag.String("method", "", "HTTP request method")
 	userCountPtr := flag.Int("users", 1, "Number of users to spawn")
@@ -76,9 +75,9 @@ func (r *Rage) LoadConfig() {
 		r.userCount = *userCountPtr
 		r.Attempts = *attemptsPtr
 	}
-	fmt.Printf("Bot Count.......: %d\n", r.userCount)
-	fmt.Printf("Attempts........: %d\n", r.Attempts)
-	fmt.Printf("Endpoint........: [%s] %s\n\n\n", r.Method, r.URL)
+	fmt.Printf("User Count...............: %d\n", r.userCount)
+	fmt.Printf("Attempts.................: %d\n", r.Attempts)
+	fmt.Printf("Endpoint.................: [%s] %s\n\n\n", r.Method, r.URL)
 }
 
 func (r *Rage) Run() {
@@ -115,7 +114,7 @@ func (r *Rage) loadConfigFile(cfg config.Config) {
 }
 
 func (r *Rage) makeRequest() {
-	if r.request.contentType != "application/json" {
+	if r.request.contentType != "" && r.request.contentType != "application/json" {
 		fmt.Printf("unsupported request content-type (%s)", r.request.contentType)
 		os.Exit(1)
 	}
@@ -195,12 +194,12 @@ func (r *Rage) summary() {
 	avgResponseTime := float64(totalResponseTime / int64(r.userCount*r.Attempts))
 	successRate := float32(successCount/(r.userCount*r.Attempts)) * 100
 	failRate := float32(failCount/r.userCount*r.Attempts) * 100
-	fmt.Printf("Success Rate........: %.1f%% (%d/%d)\n", successRate, successCount, r.userCount*r.Attempts)
-	fmt.Printf("Failure Rate........: %.1f%% (%d/%d)\n", failRate, failCount, r.userCount*r.Attempts)
+	fmt.Printf("Success Rate................: %.1f%% (%d/%d)\n", successRate, successCount, r.userCount*r.Attempts)
+	fmt.Printf("Failure Rate................: %.1f%% (%d/%d)\n", failRate, failCount, r.userCount*r.Attempts)
 	if totalDataReceived > 0 {
-		fmt.Printf("Data Received.......: %db\n", totalDataReceived)
+		fmt.Printf("Data Received...............: %db\n", totalDataReceived)
 	}
-	fmt.Printf("Average Latency.....: %.2fms\n", avgResponseTime)
-	fmt.Printf("Maximum Latency.....: %s\n", maxResponseTime)
-	fmt.Printf("Minimum Latency.....: %s\n\n", minResponseTime)
+	fmt.Printf("Average Latency.............: %.2fms\n", avgResponseTime)
+	fmt.Printf("Maximum Latency.............: %s\n", maxResponseTime)
+	fmt.Printf("Minimum Latency.............: %s\n\n", minResponseTime)
 }
