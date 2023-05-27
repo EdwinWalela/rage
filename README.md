@@ -1,4 +1,5 @@
 # rage
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT) [![Go Report Card](https://goreportcard.com/badge/github.com/edwinwalela/rage)](https://goreportcard.com/report/github.com/edwinwalela/rage)  
 
 rage is a minimalistic load testing tool designed to help developers stress-test their infrastructure with ease
 
