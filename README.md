@@ -1,7 +1,7 @@
 # rage
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT) [![Go Report Card](https://goreportcard.com/badge/github.com/edwinwalela/rage)](https://goreportcard.com/report/github.com/edwinwalela/rage)  
 
-rage is a minimalistic load testing tool designed to help developers stress-test their infrastructure with ease
+A minimalistic load testing tool designed to help developers stress-test their infrastructure with ease
 
 <center>
 <img src="./docs/rage.png" width=600/>
@@ -45,20 +45,20 @@ The above configuration models the following request body:
 
 ```json
 {
-  "product_uuid":"1e89b3e4567-e89b-12d3",
+  "product_uuid": "1e89b3e4567-e89b-12d3",
   "quantity": 3,
   "colors": ["green","black","white"],
-  "extras":{
-    "address":{
+  "extras": {
+    "address": {
       "apartment_number": 10,
       "note": "drop-off at reception"
     },
-    "coupon_code":"RAGE23!
+    "coupon_code":"RAGE23!"
   }
 }
 ```
 
-Run rage with the following configurations:
+Run rage with the above YAML configurations
 
 ```
 ./rage -f config.yaml
