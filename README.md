@@ -14,7 +14,7 @@ rage supports passing configuration arguments as CLI flags or through YAML
 ./rage -url <endpoint> -method <HTTP-Method> -users <integer> -attempts <integer>
 ```
 
-Using a YAML configuration file provides enables you to customize the request further
+Using a YAML configuration file enables you to customize the request further
 
 ```yaml
 target:
