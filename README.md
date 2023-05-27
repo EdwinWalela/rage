@@ -69,3 +69,7 @@ rage makes the requests concurrently using goroutines.
 
 - `users` - Number of virtual users to spawn
 - `attempts` - Number of requests each user makes
+
+## Contributing
+
+Any contribution, in the form of a suggestion, bug report or pull request, is welcomed
