@@ -1,6 +1,8 @@
 package rage
 
 import (
+	"bytes"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"net/http"
@@ -25,7 +27,13 @@ type Rage struct {
 	client      http.Client
 	result      chan Result
 	startTime   time.Time
-	config      config.Config
+	request     request
+}
+
+type request struct {
+	contentType string
+	headers     map[string]string
+	payload     map[string]interface{}
 }
 
 type Result struct {
@@ -34,6 +42,18 @@ type Result struct {
 	ContentLength int64
 	Error         error
 	RequestTime   time.Duration
+}
+
+func (r *Rage) loadConfigFile(cfg config.Config) {
+	r.URL = cfg.Target.Url
+	r.Method = cfg.Target.Method
+	r.userCount = cfg.Load.Users
+	r.Attempts = cfg.Load.Attempts
+	r.request = request{
+		headers:     cfg.Headers,
+		contentType: cfg.Body["content-type"].(string),
+		payload:     cfg.Body["payload"].(map[string]interface{}),
+	}
 }
 
 func (r *Rage) LoadConfig() {
@@ -52,10 +72,7 @@ func (r *Rage) LoadConfig() {
 			fmt.Printf("failed to parse config file (%s): %v", *filePtr, err)
 			os.Exit(2)
 		}
-		r.URL = cfg.Target.Url
-		r.Method = cfg.Target.Method
-		r.userCount = cfg.Load.Users
-		r.Attempts = cfg.Load.Attempts
+		r.loadConfigFile(cfg)
 	} else {
 		if *urlPtr == "" {
 			fmt.Printf("missing required -url flag\n")
@@ -77,7 +94,19 @@ func (r *Rage) LoadConfig() {
 }
 
 func (r *Rage) makeRequest() {
-	req, err := http.NewRequest(r.Method, r.URL, nil)
+	if r.request.contentType != "application/json" {
+		fmt.Printf("unsupported request content-type (%s)", r.request.contentType)
+		os.Exit(1)
+	}
+
+	jsonBytes, err := json.Marshal(&r.request.payload)
+	if err != nil {
+		fmt.Printf("failed to parse request body: %v", err)
+		os.Exit(1)
+	}
+	bodyReader := bytes.NewReader(jsonBytes)
+	req, err := http.NewRequest(r.Method, r.URL, bodyReader)
+	req.Header.Add("content-type", r.request.contentType)
 	if err != nil {
 		return
 	}

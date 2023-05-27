@@ -19,7 +19,7 @@ type load struct {
 type Config struct {
 	Target  target
 	Load    load
-	Headers map[string]interface{}
+	Headers map[string]string
 	Body    map[string]interface{}
 }
 
