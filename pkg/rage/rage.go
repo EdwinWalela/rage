@@ -192,9 +192,9 @@ func (r *Rage) summary() {
 		}
 	}
 
-	avgResponseTime := float64(totalResponseTime / int64(r.userCount))
+	avgResponseTime := float64(totalResponseTime / int64(r.userCount*r.Attempts))
 	successRate := float32(successCount/(r.userCount*r.Attempts)) * 100
-	failRate := float32(failCount/r.userCount) * 100
+	failRate := float32(failCount/r.userCount*r.Attempts) * 100
 	fmt.Printf("Success Rate........: %.1f%% (%d/%d)\n", successRate, successCount, r.userCount*r.Attempts)
 	fmt.Printf("Failure Rate........: %.1f%% (%d/%d)\n", failRate, failCount, r.userCount*r.Attempts)
 	if totalDataReceived > 0 {
