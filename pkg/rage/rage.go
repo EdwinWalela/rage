@@ -33,6 +33,7 @@ type request struct {
 	contentType string
 	headers     map[string]string
 	payload     map[string]interface{}
+	jsonPayload []byte
 }
 
 type Result struct {
@@ -82,6 +83,12 @@ func (r *Rage) LoadConfig() {
 
 func (r *Rage) Run() {
 	r.startTime = time.Now()
+	jsonBytes, err := json.Marshal(&r.request.payload)
+	if err != nil {
+		fmt.Printf("failed to parse request body: %v", err)
+		os.Exit(1)
+	}
+	r.request.jsonPayload = jsonBytes
 	r.result = make(chan Result, r.userCount*r.Attempts)
 	r.progressBar = progressbar.NewOptions(
 		r.userCount*r.Attempts,
@@ -119,12 +126,7 @@ func (r *Rage) makeRequest() {
 		os.Exit(1)
 	}
 
-	jsonBytes, err := json.Marshal(&r.request.payload)
-	if err != nil {
-		fmt.Printf("failed to parse request body: %v", err)
-		os.Exit(1)
-	}
-	bodyReader := bytes.NewReader(jsonBytes)
+	bodyReader := bytes.NewReader(r.request.jsonPayload)
 	req, err := http.NewRequest(r.Method, r.URL, bodyReader)
 	req.Header.Add("content-type", r.request.contentType)
 	if err != nil {
