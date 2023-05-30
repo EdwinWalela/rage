@@ -20,6 +20,7 @@ Using a YAML configuration file enables you to customize the request further
 target:
   url: https://api.mydomain.com/v1/checkout
   method: POST
+  successcode: 201
 load:
   users: 5
   attempts: 10

@@ -19,6 +19,7 @@ import (
 type Rage struct {
 	URL         string
 	Method      string
+	SuccessCode int
 	userCount   int
 	Attempts    int
 	wg          sync.WaitGroup
@@ -51,6 +52,7 @@ func (r *Rage) LoadConfig() {
 	userCountPtr := flag.Int("users", 1, "Number of users to spawn")
 	attemptsPtr := flag.Int("attempts", 1, "Number of requests to make per user")
 	filePtr := flag.String("f", "", "Configuration file path")
+	successCodePtr := flag.Int("success-code", 200, "HTTP Response Success Code")
 
 	flag.Parse()
 
@@ -75,6 +77,7 @@ func (r *Rage) LoadConfig() {
 		r.Method = strings.ToUpper(*methodPtr)
 		r.userCount = *userCountPtr
 		r.Attempts = *attemptsPtr
+		r.SuccessCode = *successCodePtr
 	}
 	fmt.Printf("User Count...............: %d\n", r.userCount)
 	fmt.Printf("Attempts.................: %d\n", r.Attempts)
@@ -113,6 +116,11 @@ func (r *Rage) loadConfigFile(cfg config.Config) {
 	r.Method = cfg.Target.Method
 	r.userCount = cfg.Load.Users
 	r.Attempts = cfg.Load.Attempts
+	if cfg.Target.SuccessCode != 0 {
+		r.SuccessCode = cfg.Target.SuccessCode
+	} else {
+		r.SuccessCode = 200
+	}
 	r.request = request{
 		headers:     cfg.Headers,
 		contentType: cfg.Body["content-type"].(string),
@@ -173,7 +181,7 @@ func (r *Rage) summary() {
 	minResponseTime := time.Hour * 24
 
 	for val := range r.result {
-		if val.StatusCode == http.StatusOK {
+		if val.StatusCode == r.SuccessCode {
 			successCount++
 		} else {
 			failCount++

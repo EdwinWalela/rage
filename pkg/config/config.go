@@ -8,8 +8,9 @@ import (
 )
 
 type target struct {
-	Url    string
-	Method string
+	Url         string
+	Method      string
+	SuccessCode int
 }
 
 type load struct {
