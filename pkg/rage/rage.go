@@ -57,18 +57,18 @@ func (r *Rage) LoadConfig() {
 	if *filePtr != "" {
 		cfg, err := config.Parse(*filePtr)
 		if err != nil {
-			fmt.Printf("failed to parse config file (%s): %v", *filePtr, err)
-			os.Exit(2)
+			fmt.Printf("failed to parse config file (%s): %v\n", *filePtr, err)
+			os.Exit(1)
 		}
 		r.loadConfigFile(cfg)
 	} else {
 		if *urlPtr == "" {
 			fmt.Printf("missing required -url flag\n")
-			os.Exit(2)
+			os.Exit(1)
 		}
 		if *methodPtr == "" {
 			fmt.Printf("missing required -method flag\n")
-			os.Exit(2)
+			os.Exit(1)
 		}
 
 		r.URL = *urlPtr
